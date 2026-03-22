@@ -1,7 +1,7 @@
 ---
 name: signalbot
 description: 量化行情分析工具，对 BTC、黄金（XAUUSD）等标的计算 RSI、MACD、布林带、EMA、ATR、成交量六类技术指标，输出结构化 JSON 行情报告，可据此生成行情分析推文或做出操作建议。
-metadata: {"openclaw": {"emoji": "📊", "requires": {"bins": ["signalbot"]}}}
+metadata: {"openclaw": {"emoji": "📊", "requires": {"bins": ["signalbot"]}, "install": [{"id": "download-mac-arm64", "kind": "download", "url": "https://github.com/shanhuhai5739/signalbot/releases/latest/download/signalbot-darwin-arm64", "os": ["darwin"]}, {"id": "download-linux", "kind": "download", "url": "https://github.com/shanhuhai5739/signalbot/releases/latest/download/signalbot-linux-amd64", "os": ["linux"]}]}}
 ---
 
 # Signalbot 量化行情分析技能
