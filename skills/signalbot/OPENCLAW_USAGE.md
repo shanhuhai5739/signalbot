@@ -2,26 +2,53 @@
 
 本文档面向使用者，说明如何在 OpenClaw 中安装和使用 signalbot skill。
 
+- GitHub 仓库：https://github.com/shanhuhai5739/signalbot
+- ClawHub Skill：`clawhub install signalbot`
+
 ---
 
-## 前置条件
+## 前置条件：安装 signalbot 二进制
 
-确保 `signalbot` 二进制已编译并在 PATH 中：
+### 方式一：go install（推荐，需要 Go 1.21+）
 
 ```bash
-# 在 signalbot 项目目录下编译
-cd /path/to/signalbot
-go build -o signalbot .
-
-# 移动到 PATH（任选其一）
-cp signalbot /usr/local/bin/signalbot
-# 或
-export PATH="$PATH:/path/to/signalbot"
+go install github.com/shanhuhai5739/signalbot@latest
 ```
 
-验证：
+安装后二进制自动放入 `$GOPATH/bin`，确保该目录在 PATH 中：
+
 ```bash
+# 验证
 signalbot --help
+
+# 如果找不到命令，将 GOPATH/bin 加入 PATH
+echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### 方式二：从源码手动编译
+
+```bash
+git clone https://github.com/shanhuhai5739/signalbot.git
+cd signalbot
+go build -o signalbot .
+cp signalbot /usr/local/bin/signalbot
+```
+
+### 方式三：下载预编译二进制（GitHub Releases）
+
+```bash
+# macOS Apple Silicon (arm64)
+curl -L https://github.com/shanhuhai5739/signalbot/releases/latest/download/signalbot-darwin-arm64 \
+  -o /usr/local/bin/signalbot && chmod +x /usr/local/bin/signalbot
+
+# macOS Intel (amd64)
+curl -L https://github.com/shanhuhai5739/signalbot/releases/latest/download/signalbot-darwin-amd64 \
+  -o /usr/local/bin/signalbot && chmod +x /usr/local/bin/signalbot
+
+# Linux (amd64)
+curl -L https://github.com/shanhuhai5739/signalbot/releases/latest/download/signalbot-linux-amd64 \
+  -o /usr/local/bin/signalbot && chmod +x /usr/local/bin/signalbot
 ```
 
 ---
