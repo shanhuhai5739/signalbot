@@ -12,18 +12,25 @@ import (
 	"signalbot/config"
 )
 
-// symbolMap maps friendly asset names to Binance trading pair symbols.
-// Add more pairs here as new assets are supported.
+// symbolMap maps friendly asset names to Binance spot trading pair symbols.
 var symbolMap = map[string]string{
-	"BTC":    "BTCUSDT",
+	"BTC": "BTCUSDT",
+	"ETH": "ETHUSDT",
+	"SOL": "SOLUSDT",
+	"BNB": "BNBUSDT",
+}
+
+// futuresSymbolMap maps friendly asset names to Binance USD-M futures symbols.
+// Gold (XAUUSD) exists on Binance futures (fapi.binance.com) but not on spot.
+// The futures price tracks CME gold spot within ~0.5%, negligible for technical analysis.
+var futuresSymbolMap = map[string]string{
 	"XAUUSD": "XAUUSDT",
-	"ETH":    "ETHUSDT",
-	"SOL":    "SOLUSDT",
-	"BNB":    "BNBUSDT",
+	"XAU":    "XAUUSDT",
 }
 
 // BinanceClient fetches public market data from the Binance REST API.
 // No authentication is required for klines data.
+// Spot assets (BTC, ETH, …) use api.binance.com; futures assets (XAUUSD) use fapi.binance.com.
 type BinanceClient struct {
 	cfg    *config.Config
 	client *http.Client
@@ -38,18 +45,26 @@ func NewBinanceClient(cfg *config.Config) *BinanceClient {
 }
 
 // FetchKlines retrieves OHLCV candlestick data for the given asset and interval.
-// asset can be a friendly name ("BTC", "XAUUSD") or a raw Binance symbol ("BTCUSDT").
+// Spot assets use the Binance spot API; futures assets (e.g. XAUUSD) use the USD-M futures API.
 // interval follows Binance conventions: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M.
 // limit controls how many candles to return (max 1500).
 func (b *BinanceClient) FetchKlines(ctx context.Context, asset, interval string, limit int) ([]Candle, error) {
-	symbol := resolveSymbol(asset)
+	symbol, isFutures := resolveSymbol(asset)
 
-	url := fmt.Sprintf(
-		"%s/api/v3/klines?symbol=%s&interval=%s&limit=%d",
-		b.cfg.BinanceBaseURL, symbol, interval, limit,
-	)
+	var apiURL string
+	if isFutures {
+		apiURL = fmt.Sprintf(
+			"%s/fapi/v1/klines?symbol=%s&interval=%s&limit=%d",
+			b.cfg.BinanceFuturesBaseURL, symbol, interval, limit,
+		)
+	} else {
+		apiURL = fmt.Sprintf(
+			"%s/api/v3/klines?symbol=%s&interval=%s&limit=%d",
+			b.cfg.BinanceBaseURL, symbol, interval, limit,
+		)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
@@ -87,13 +102,16 @@ func (b *BinanceClient) FetchKlines(ctx context.Context, asset, interval string,
 	return candles, nil
 }
 
-// resolveSymbol maps a user-facing asset name to a Binance trading symbol.
-func resolveSymbol(asset string) string {
+// resolveSymbol maps a user-facing asset name to a Binance symbol and whether it is a futures contract.
+func resolveSymbol(asset string) (symbol string, isFutures bool) {
 	upper := strings.ToUpper(asset)
-	if sym, ok := symbolMap[upper]; ok {
-		return sym
+	if sym, ok := futuresSymbolMap[upper]; ok {
+		return sym, true
 	}
-	return upper
+	if sym, ok := symbolMap[upper]; ok {
+		return sym, false
+	}
+	return upper, false
 }
 
 // parseKlineRow parses a single Binance kline array into a Candle.

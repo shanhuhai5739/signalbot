@@ -69,13 +69,13 @@ func analyzeCmd() *cobra.Command {
 				limit = minRequired
 			}
 
-			client := data.NewBinanceClient(cfg)
+			provider := data.NewProvider(cfg)
 			ctx := context.Background()
 
 			fmt.Fprintf(os.Stderr, "正在获取 %s %s K线数据 (%d 根)...\n",
 				strings.ToUpper(asset), timeframe, limit)
 
-			candles, err := client.FetchKlines(ctx, asset, timeframe, limit)
+			candles, err := provider.FetchKlines(ctx, asset, timeframe, limit)
 			if err != nil {
 				return fmt.Errorf("获取行情失败: %w", err)
 			}
