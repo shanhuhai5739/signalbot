@@ -51,7 +51,7 @@ func AnalyzeMulti(ctx context.Context, asset string, provider *data.Provider) *r
 				ch <- tfResult{cfg.Interval, nil, nil}
 				return
 			}
-			rep := Analyze(asset, cfg.Interval, candles)
+			rep := Analyze(asset, cfg.Interval, candles, Options{})
 			ch <- tfResult{cfg.Interval, rep, nil}
 		}(tf)
 	}

@@ -28,16 +28,17 @@ type PriceInfo struct {
 
 // Indicators groups all computed technical indicator results.
 type Indicators struct {
-	RSI       RSIData       `json:"rsi"`
-	MACD      MACDData      `json:"macd"`
-	Bollinger BollingerData `json:"bollinger"`
-	EMA       EMAData       `json:"ema"`
-	ATR       ATRData       `json:"atr"`
-	Volume    VolumeData    `json:"volume"`
-	Guppy     GuppyData     `json:"guppy"`
-	Fibonacci FibonacciData `json:"fibonacci"`
-	VWAP      VWAPData      `json:"vwap"`
-	VPVR      VPVRData      `json:"vpvr"`
+	RSI         RSIData              `json:"rsi"`
+	MACD        MACDData             `json:"macd"`
+	Bollinger   BollingerData        `json:"bollinger"`
+	EMA         EMAData              `json:"ema"`
+	ATR         ATRData              `json:"atr"`
+	Volume      VolumeData           `json:"volume"`
+	Guppy       GuppyData            `json:"guppy"`
+	GuppyHistory []GuppyHistoryEntry `json:"guppy_history,omitempty"`
+	Fibonacci   FibonacciData        `json:"fibonacci"`
+	VWAP        VWAPData             `json:"vwap"`
+	VPVR        VPVRData             `json:"vpvr"`
 }
 
 // RSIData is the serialisable form of the RSI result.
@@ -96,28 +97,40 @@ type VolumeData struct {
 // New indicator data types
 // ---------------------------------------------------------------------------
 
-// GuppyData is the serialisable form of the Guppy Multiple Moving Average result.
-type GuppyData struct {
-	EMA3   float64 `json:"ema3"`
-	EMA5   float64 `json:"ema5"`
-	EMA8   float64 `json:"ema8"`
-	EMA10  float64 `json:"ema10"`
-	EMA13  float64 `json:"ema13"`
-	EMA21  float64 `json:"ema21"`
-	EMA34  float64 `json:"ema34"`
-	EMA55  float64 `json:"ema55"`
-	EMA89  float64 `json:"ema89"`
-	EMA144 float64 `json:"ema144"`
-	EMA233 float64 `json:"ema233"`
-	EMA377 float64 `json:"ema377"`
+// GuppyEMAItem is a single EMA in the Guppy groups.
+type GuppyEMAItem struct {
+	Period int     `json:"period"`
+	Value  float64 `json:"value"`
+}
 
-	ShortMin  float64 `json:"short_min"`
-	ShortMax  float64 `json:"short_max"`
-	LongMin   float64 `json:"long_min"`
-	LongMax   float64 `json:"long_max"`
-	GapPct    float64 `json:"gap_pct"`
-	Alignment string  `json:"alignment"`
-	Signal    string  `json:"signal"`
+// GuppyData is the serialisable form of the GMMA result.
+// ShortEMAs and LongEMAs use arrays so custom period configurations are
+// represented without any fixed field names.
+type GuppyData struct {
+	ShortEMAs []GuppyEMAItem `json:"short_emas"` // fast group (traders)
+	LongEMAs  []GuppyEMAItem `json:"long_emas"`  // slow group (investors)
+	ShortMin  float64        `json:"short_min"`
+	ShortMax  float64        `json:"short_max"`
+	LongMin   float64        `json:"long_min"`
+	LongMax   float64        `json:"long_max"`
+	GapPct    float64        `json:"gap_pct"`
+	Alignment string         `json:"alignment"`
+	Signal    string         `json:"signal"`
+}
+
+// GuppyHistoryEntry is one historical GMMA snapshot (bar_index 0 = most recent).
+type GuppyHistoryEntry struct {
+	BarIndex  int            `json:"bar_index"`
+	Close     float64        `json:"close"`
+	ShortEMAs []GuppyEMAItem `json:"short_emas"`
+	LongEMAs  []GuppyEMAItem `json:"long_emas"`
+	ShortMin  float64        `json:"short_min"`
+	ShortMax  float64        `json:"short_max"`
+	LongMin   float64        `json:"long_min"`
+	LongMax   float64        `json:"long_max"`
+	GapPct    float64        `json:"gap_pct"`
+	Alignment string         `json:"alignment"`
+	Signal    string         `json:"signal"`
 }
 
 // FibLevel is a single Fibonacci retracement level.

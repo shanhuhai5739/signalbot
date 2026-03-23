@@ -12,9 +12,21 @@ import (
 // EMA200 requires 200+ bars, plus buffer for Wilder smoothing convergence.
 const minCandles = 210
 
+// Options controls optional behaviour for the Analyze function.
+type Options struct {
+	// GuppyShortPeriods sets the fast EMA group. nil = classic Guppy defaults (3,5,8,10,13,21).
+	GuppyShortPeriods []int
+	// GuppyLongPeriods sets the slow EMA group. nil = classic Guppy defaults (34,55,89,144,233,377).
+	GuppyLongPeriods []int
+	// GuppyHistoryBars is the number of historical GMMA snapshots to include.
+	// 0 or 1 = only current bar (no guppy_history array).
+	// ≥ 2 = include guppy_history[] in the report for trend/gap comparison.
+	GuppyHistoryBars int
+}
+
 // Analyze runs all technical indicators on the provided candle data and returns
 // a fully populated Report ready for JSON serialisation.
-func Analyze(asset, timeframe string, candles []data.Candle) *report.Report {
+func Analyze(asset, timeframe string, candles []data.Candle, opts Options) *report.Report {
 	closes := data.ExtractCloses(candles)
 	highs := data.ExtractHighs(candles)
 	lows := data.ExtractLows(candles)
@@ -38,7 +50,21 @@ func Analyze(asset, timeframe string, candles []data.Candle) *report.Report {
 	volResult := indicators.CalcVolume(volumes, closes)
 
 	// --- New indicators ---
-	guppyResult := indicators.CalcGuppy(closes)
+	shortPeriods := opts.GuppyShortPeriods
+	if len(shortPeriods) == 0 {
+		shortPeriods = indicators.DefaultShortPeriods
+	}
+	longPeriods := opts.GuppyLongPeriods
+	if len(longPeriods) == 0 {
+		longPeriods = indicators.DefaultLongPeriods
+	}
+
+	guppyResult := indicators.CalcGuppyWithPeriods(closes, shortPeriods, longPeriods)
+
+	var guppyHistory []indicators.GuppyHistoryEntry
+	if opts.GuppyHistoryBars >= 2 {
+		guppyHistory = indicators.CalcGuppyHistory(closes, opts.GuppyHistoryBars, shortPeriods, longPeriods)
+	}
 	fibResult := indicators.CalcFibonacci(highs, lows, closes, 100)
 
 	// Anchored VWAP: anchor to the last 50 candles (or all if fewer)
@@ -126,27 +152,8 @@ func Analyze(asset, timeframe string, candles []data.Candle) *report.Report {
 				OBV:     volResult.OBV,
 				Signal:  volResult.Signal,
 			},
-			Guppy: report.GuppyData{
-				EMA3:      guppyResult.EMA3,
-				EMA5:      guppyResult.EMA5,
-				EMA8:      guppyResult.EMA8,
-				EMA10:     guppyResult.EMA10,
-				EMA13:     guppyResult.EMA13,
-				EMA21:     guppyResult.EMA21,
-				EMA34:     guppyResult.EMA34,
-				EMA55:     guppyResult.EMA55,
-				EMA89:     guppyResult.EMA89,
-				EMA144:    guppyResult.EMA144,
-				EMA233:    guppyResult.EMA233,
-				EMA377:    guppyResult.EMA377,
-				ShortMin:  guppyResult.ShortMin,
-				ShortMax:  guppyResult.ShortMax,
-				LongMin:   guppyResult.LongMin,
-				LongMax:   guppyResult.LongMax,
-				GapPct:    guppyResult.GapPct,
-				Alignment: guppyResult.Alignment,
-				Signal:    guppyResult.Signal,
-			},
+			Guppy:        mapGuppy(guppyResult),
+			GuppyHistory: mapGuppyHistory(guppyHistory),
 			Fibonacci: report.FibonacciData{
 				SwingHigh:    fibResult.SwingHigh,
 				SwingLow:     fibResult.SwingLow,
@@ -356,6 +363,54 @@ func calcKeyLevels(
 	supports = filterAndSort(rawSupports, current, false, 3)
 	resistances = filterAndSort(rawResistances, current, true, 3)
 	return
+}
+
+// mapGuppyEMAs converts indicator GuppyEMA slice to report GuppyEMAItem slice.
+func mapGuppyEMAs(src []indicators.GuppyEMA) []report.GuppyEMAItem {
+	out := make([]report.GuppyEMAItem, len(src))
+	for i, e := range src {
+		out[i] = report.GuppyEMAItem{Period: e.Period, Value: e.Value}
+	}
+	return out
+}
+
+// mapGuppy converts an indicators.GuppyResult to report.GuppyData.
+func mapGuppy(g indicators.GuppyResult) report.GuppyData {
+	return report.GuppyData{
+		ShortEMAs: mapGuppyEMAs(g.ShortEMAs),
+		LongEMAs:  mapGuppyEMAs(g.LongEMAs),
+		ShortMin:  g.ShortMin,
+		ShortMax:  g.ShortMax,
+		LongMin:   g.LongMin,
+		LongMax:   g.LongMax,
+		GapPct:    g.GapPct,
+		Alignment: g.Alignment,
+		Signal:    g.Signal,
+	}
+}
+
+// mapGuppyHistory converts a slice of indicators.GuppyHistoryEntry to report slice.
+func mapGuppyHistory(src []indicators.GuppyHistoryEntry) []report.GuppyHistoryEntry {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]report.GuppyHistoryEntry, len(src))
+	for i, h := range src {
+		out[i] = report.GuppyHistoryEntry{
+			BarIndex:  h.BarIndex,
+			Close:     h.Close,
+			ShortEMAs: mapGuppyEMAs(h.ShortEMAs),
+			LongEMAs:  mapGuppyEMAs(h.LongEMAs),
+			ShortMin:  h.ShortMin,
+			ShortMax:  h.ShortMax,
+			LongMin:   h.LongMin,
+			LongMax:   h.LongMax,
+			GapPct:    h.GapPct,
+			Alignment: h.Alignment,
+			Signal:    h.Signal,
+		}
+	}
+	return out
 }
 
 // mapFibLevels converts indicator FibLevel slice to report FibLevel slice.

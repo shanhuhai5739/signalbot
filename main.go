@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -54,13 +55,34 @@ func versionCmd() *cobra.Command {
 	}
 }
 
+// parsePeriods parses a comma-separated string of integers into a []int slice.
+// Empty string returns nil (caller should fall back to defaults).
+func parsePeriods(s string) []int {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	result := make([]int, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		n, err := strconv.Atoi(p)
+		if err == nil && n > 0 {
+			result = append(result, n)
+		}
+	}
+	return result
+}
+
 // analyzeCmd 分析单个标的单个时间周期
 func analyzeCmd() *cobra.Command {
 	var (
-		asset     string
-		timeframe string
-		limit     int
-		output    string
+		asset        string
+		timeframe    string
+		limit        int
+		output       string
+		guppyShort   string
+		guppyLong    string
+		guppyHistory int
 	)
 
 	cmd := &cobra.Command{
@@ -107,7 +129,12 @@ func analyzeCmd() *cobra.Command {
 
 			fmt.Fprintf(os.Stderr, "收到 %d 根 K线，正在计算指标...\n", len(candles))
 
-			rep := analysis.Analyze(strings.ToUpper(asset), timeframe, candles)
+			opts := analysis.Options{
+				GuppyShortPeriods: parsePeriods(guppyShort),
+				GuppyLongPeriods:  parsePeriods(guppyLong),
+				GuppyHistoryBars:  guppyHistory,
+			}
+			rep := analysis.Analyze(strings.ToUpper(asset), timeframe, candles, opts)
 
 			if output != "" {
 				if err := rep.Save(output); err != nil {
@@ -128,6 +155,12 @@ func analyzeCmd() *cobra.Command {
 		"获取 K线数量，默认由 DEFAULT_LIMIT 环境变量控制（默认 200，最多 1500）")
 	cmd.Flags().StringVarP(&output, "output", "o", "",
 		"JSON 输出文件路径，不指定则打印到 stdout")
+	cmd.Flags().StringVar(&guppyShort, "guppy-short", "",
+		"顾比均线短期组周期，逗号分隔（默认: 3,5,8,10,13,21）。例: --guppy-short 3,5,8,10,12,15")
+	cmd.Flags().StringVar(&guppyLong, "guppy-long", "",
+		"顾比均线长期组周期，逗号分隔（默认: 34,55,89,144,233,377）。例: --guppy-long 30,35,40,45,50,60")
+	cmd.Flags().IntVar(&guppyHistory, "guppy-history", 1,
+		"输出顾比均线历史帧数（≥2 时 JSON 中附加 guppy_history 数组，用于趋势方向和间距扩缩判断）")
 
 	_ = cmd.MarkFlagRequired("asset")
 	return cmd
