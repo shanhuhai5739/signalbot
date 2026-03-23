@@ -34,6 +34,10 @@ type Indicators struct {
 	EMA       EMAData       `json:"ema"`
 	ATR       ATRData       `json:"atr"`
 	Volume    VolumeData    `json:"volume"`
+	Guppy     GuppyData     `json:"guppy"`
+	Fibonacci FibonacciData `json:"fibonacci"`
+	VWAP      VWAPData      `json:"vwap"`
+	VPVR      VPVRData      `json:"vpvr"`
 }
 
 // RSIData is the serialisable form of the RSI result.
@@ -86,6 +90,87 @@ type VolumeData struct {
 	Ratio   float64 `json:"ratio"`
 	OBV     float64 `json:"obv"`
 	Signal  string  `json:"signal"`
+}
+
+// ---------------------------------------------------------------------------
+// New indicator data types
+// ---------------------------------------------------------------------------
+
+// GuppyData is the serialisable form of the Guppy Multiple Moving Average result.
+type GuppyData struct {
+	EMA3   float64 `json:"ema3"`
+	EMA5   float64 `json:"ema5"`
+	EMA8   float64 `json:"ema8"`
+	EMA10  float64 `json:"ema10"`
+	EMA13  float64 `json:"ema13"`
+	EMA21  float64 `json:"ema21"`
+	EMA34  float64 `json:"ema34"`
+	EMA55  float64 `json:"ema55"`
+	EMA89  float64 `json:"ema89"`
+	EMA144 float64 `json:"ema144"`
+	EMA233 float64 `json:"ema233"`
+	EMA377 float64 `json:"ema377"`
+
+	ShortMin  float64 `json:"short_min"`
+	ShortMax  float64 `json:"short_max"`
+	LongMin   float64 `json:"long_min"`
+	LongMax   float64 `json:"long_max"`
+	GapPct    float64 `json:"gap_pct"`
+	Alignment string  `json:"alignment"`
+	Signal    string  `json:"signal"`
+}
+
+// FibLevel is a single Fibonacci retracement level.
+type FibLevel struct {
+	Label   string  `json:"label"`
+	Ratio   float64 `json:"ratio"`
+	Price   float64 `json:"price"`
+	IsAbove bool    `json:"is_above"`
+}
+
+// FibonacciData is the serialisable form of the Fibonacci retracement result.
+type FibonacciData struct {
+	SwingHigh    float64    `json:"swing_high"`
+	SwingLow     float64    `json:"swing_low"`
+	Range        float64    `json:"range"`
+	Levels       []FibLevel `json:"levels"`
+	NearestLevel string     `json:"nearest_level"`
+	DistancePct  float64    `json:"distance_pct"`
+	Signal       string     `json:"signal"`
+	Direction    string     `json:"direction"`
+}
+
+// VWAPData is the serialisable form of the Anchored VWAP result.
+type VWAPData struct {
+	Value        float64 `json:"value"`
+	UpperBand1   float64 `json:"upper_band1"`
+	LowerBand1   float64 `json:"lower_band1"`
+	UpperBand2   float64 `json:"upper_band2"`
+	LowerBand2   float64 `json:"lower_band2"`
+	StdDev       float64 `json:"std_dev"`
+	DeviationPct float64 `json:"deviation_pct"`
+	Position     string  `json:"position"`
+	Signal       string  `json:"signal"`
+}
+
+// VPVRBin is a single price-level bucket in the volume profile.
+type VPVRBin struct {
+	PriceLow    float64 `json:"price_low"`
+	PriceHigh   float64 `json:"price_high"`
+	PriceMid    float64 `json:"price_mid"`
+	Volume      float64 `json:"volume"`
+	IsPOC       bool    `json:"is_poc"`
+	IsValueArea bool    `json:"is_value_area"`
+}
+
+// VPVRData is the serialisable form of the Fixed Range Volume Profile result.
+type VPVRData struct {
+	POC     float64   `json:"poc"`
+	VAH     float64   `json:"vah"`
+	VAL     float64   `json:"val"`
+	NumBins int       `json:"num_bins"`
+	Bins    []VPVRBin `json:"bins"`
+	Signal  string    `json:"signal"`
 }
 
 // Analysis holds the aggregated signal, trend, and key price levels.

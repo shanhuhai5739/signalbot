@@ -37,6 +37,35 @@ func Analyze(asset, timeframe string, candles []data.Candle) *report.Report {
 	atrResult := indicators.CalcATR(highs, lows, closes, 14)
 	volResult := indicators.CalcVolume(volumes, closes)
 
+	// --- New indicators ---
+	guppyResult := indicators.CalcGuppy(closes)
+	fibResult := indicators.CalcFibonacci(highs, lows, closes, 100)
+
+	// Anchored VWAP: anchor to the last 50 candles (or all if fewer)
+	vwapWindow := 50
+	if len(closes) < vwapWindow {
+		vwapWindow = len(closes)
+	}
+	vwapResult := indicators.CalcVWAP(
+		highs[len(highs)-vwapWindow:],
+		lows[len(lows)-vwapWindow:],
+		closes[len(closes)-vwapWindow:],
+		volumes[len(volumes)-vwapWindow:],
+	)
+
+	// VPVR: fixed range volume profile over the last 100 candles, 24 bins
+	vpvrWindow := 100
+	if len(closes) < vpvrWindow {
+		vpvrWindow = len(closes)
+	}
+	vpvrResult := indicators.CalcVPVR(
+		highs[len(highs)-vpvrWindow:],
+		lows[len(lows)-vpvrWindow:],
+		closes[len(closes)-vpvrWindow:],
+		volumes[len(volumes)-vpvrWindow:],
+		24,
+	)
+
 	// --- Score-based signal aggregation ---
 	score := calcScore(emaResult, rsiResult, macdResult, bbResult)
 	trend, strength, signal := classifySignal(score)
@@ -96,6 +125,56 @@ func Analyze(asset, timeframe string, candles []data.Candle) *report.Report {
 				Ratio:   volResult.Ratio,
 				OBV:     volResult.OBV,
 				Signal:  volResult.Signal,
+			},
+			Guppy: report.GuppyData{
+				EMA3:      guppyResult.EMA3,
+				EMA5:      guppyResult.EMA5,
+				EMA8:      guppyResult.EMA8,
+				EMA10:     guppyResult.EMA10,
+				EMA13:     guppyResult.EMA13,
+				EMA21:     guppyResult.EMA21,
+				EMA34:     guppyResult.EMA34,
+				EMA55:     guppyResult.EMA55,
+				EMA89:     guppyResult.EMA89,
+				EMA144:    guppyResult.EMA144,
+				EMA233:    guppyResult.EMA233,
+				EMA377:    guppyResult.EMA377,
+				ShortMin:  guppyResult.ShortMin,
+				ShortMax:  guppyResult.ShortMax,
+				LongMin:   guppyResult.LongMin,
+				LongMax:   guppyResult.LongMax,
+				GapPct:    guppyResult.GapPct,
+				Alignment: guppyResult.Alignment,
+				Signal:    guppyResult.Signal,
+			},
+			Fibonacci: report.FibonacciData{
+				SwingHigh:    fibResult.SwingHigh,
+				SwingLow:     fibResult.SwingLow,
+				Range:        fibResult.Range,
+				Levels:       mapFibLevels(fibResult.Levels),
+				NearestLevel: fibResult.NearestLevel,
+				DistancePct:  fibResult.DistancePct,
+				Signal:       fibResult.Signal,
+				Direction:    fibResult.Direction,
+			},
+			VWAP: report.VWAPData{
+				Value:        vwapResult.Value,
+				UpperBand1:   vwapResult.UpperBand1,
+				LowerBand1:   vwapResult.LowerBand1,
+				UpperBand2:   vwapResult.UpperBand2,
+				LowerBand2:   vwapResult.LowerBand2,
+				StdDev:       vwapResult.StdDev,
+				DeviationPct: vwapResult.DeviationPct,
+				Position:     vwapResult.Position,
+				Signal:       vwapResult.Signal,
+			},
+			VPVR: report.VPVRData{
+				POC:     vpvrResult.POC,
+				VAH:     vpvrResult.VAH,
+				VAL:     vpvrResult.VAL,
+				NumBins: vpvrResult.NumBins,
+				Bins:    mapVPVRBins(vpvrResult.Bins),
+				Signal:  vpvrResult.Signal,
 			},
 		},
 		Analysis: report.Analysis{
@@ -277,6 +356,36 @@ func calcKeyLevels(
 	supports = filterAndSort(rawSupports, current, false, 3)
 	resistances = filterAndSort(rawResistances, current, true, 3)
 	return
+}
+
+// mapFibLevels converts indicator FibLevel slice to report FibLevel slice.
+func mapFibLevels(src []indicators.FibLevel) []report.FibLevel {
+	out := make([]report.FibLevel, len(src))
+	for i, l := range src {
+		out[i] = report.FibLevel{
+			Label:   l.Label,
+			Ratio:   l.Ratio,
+			Price:   l.Price,
+			IsAbove: l.IsAbove,
+		}
+	}
+	return out
+}
+
+// mapVPVRBins converts indicator VPVRBin slice to report VPVRBin slice.
+func mapVPVRBins(src []indicators.VPVRBin) []report.VPVRBin {
+	out := make([]report.VPVRBin, len(src))
+	for i, b := range src {
+		out[i] = report.VPVRBin{
+			PriceLow:    b.PriceLow,
+			PriceHigh:   b.PriceHigh,
+			PriceMid:    b.PriceMid,
+			Volume:      b.Volume,
+			IsPOC:       b.IsPOC,
+			IsValueArea: b.IsValueArea,
+		}
+	}
+	return out
 }
 
 // filterAndSort deduplicates levels within 0.3% of each other, keeps only those

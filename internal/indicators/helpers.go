@@ -35,3 +35,31 @@ func StdDev(prices []float64, period int) float64 {
 	}
 	return math.Sqrt(variance / float64(period))
 }
+
+// SliceMin returns the minimum value in a slice, or 0 if empty.
+func SliceMin(s []float64) float64 {
+	if len(s) == 0 {
+		return 0
+	}
+	m := s[0]
+	for _, v := range s[1:] {
+		if v < m {
+			m = v
+		}
+	}
+	return m
+}
+
+// SliceMax returns the maximum value in a slice, or 0 if empty.
+func SliceMax(s []float64) float64 {
+	if len(s) == 0 {
+		return 0
+	}
+	m := s[0]
+	for _, v := range s[1:] {
+		if v > m {
+			m = v
+		}
+	}
+	return m
+}
