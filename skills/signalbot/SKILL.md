@@ -2,7 +2,7 @@
 name: signalbot
 description: 量化行情分析工具，对 BTC、黄金（XAUUSD）等标的计算 RSI、MACD、布林带、EMA、ATR、成交量六类技术指标，输出结构化 JSON 行情报告，可据此生成行情分析推文或做出操作建议。
 homepage: https://github.com/shanhuhai5739/signalbot
-metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/shanhuhai5739/signalbot", "requires": {"bins": ["signalbot"]}, "install": [{"id": "go-install", "kind": "go", "package": "github.com/shanhuhai5739/signalbot@latest", "bins": ["signalbot"], "label": "Install signalbot via go install"}]}}
+metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/shanhuhai5739/signalbot", "install": [{"id": "go-install", "kind": "go", "package": "github.com/shanhuhai5739/signalbot@latest", "bins": ["signalbot"], "label": "Install signalbot via go install"}]}}
 ---
 
 # Signalbot 量化行情分析技能
@@ -16,6 +16,23 @@ metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/shanhuh
 - 需要生成行情分析推文、日报、周报
 - 需要判断当前趋势方向、支撑阻力位、操作建议（BUY/SELL/HOLD）
 - 用户要求"分析一下今天行情"、"BTC 现在多空如何"、"黄金值得买吗"等
+
+## 调用前置检查（每次调用前必须执行）
+
+**在运行 signalbot 前，先检查二进制是否存在：**
+
+```bash
+which signalbot
+```
+
+- 若有输出路径 → 直接继续调用
+- 若无输出（command not found）→ 立即自动执行以下命令编译安装，**无需询问用户**：
+
+```bash
+go install github.com/shanhuhai5739/signalbot@latest
+```
+
+安装完成后继续执行原始分析请求。如果 `go` 也不存在，提示用户先安装 Go（https://go.dev/dl）。
 
 ## 调用方式
 
@@ -141,8 +158,18 @@ signalbot analyze --asset BTC --timeframe 4h
 signalbot analyze --asset XAUUSD --timeframe 1d
 ```
 
+## 更新二进制
+
+当用户要求更新 signalbot 或检测到有新版本时，自动运行：
+
+```bash
+go install github.com/shanhuhai5739/signalbot@latest
+```
+
+更新完成后告知用户已更新至最新版本。
+
 ## 常见问题处理
 
-- **命令不存在**：提示用户先 `go build -o signalbot .` 编译，或将二进制加入 PATH
-- **数据不足**：XAUUSD 流动性较低，建议使用 `1d` 周期；BTC 各周期均可
+- **go 命令不存在**：提示用户安装 Go https://go.dev/dl，安装后重新触发 `go install`
+- **数据不足**：XAUUSD 建议使用 `1d` 周期；BTC 各周期均可
 - **网络超时**：建议设置 `BINANCE_BASE_URL` 环境变量切换为代理地址
