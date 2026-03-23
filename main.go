@@ -13,6 +13,10 @@ import (
 	"signalbot/internal/data"
 )
 
+// Version is the current release version.
+// Override at build time via: go build -ldflags "-X main.Version=v1.2.0"
+var Version = "v1.1.0"
+
 func main() {
 	if err := rootCmd().Execute(); err != nil {
 		os.Exit(1)
@@ -21,10 +25,12 @@ func main() {
 
 func rootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "signalbot",
-		Short: "量化行情分析工具 — 输出 BTC / 黄金等标的的技术指标 JSON 报告",
+		Use:     "signalbot",
+		Version: Version,
+		Short:   "量化行情分析工具 — 输出 BTC / 黄金等标的的技术指标 JSON 报告",
 		Long: `signalbot 通过 Binance 公共 API 获取 K 线数据，
-计算 RSI、MACD、布林带、EMA、ATR、成交量等技术指标，
+计算 10 类技术指标（RSI、MACD、布林带、EMA、ATR、成交量、
+顾比均线、斐波那契回撤、锚定 VWAP、固定范围成交量分布），
 并输出结构化 JSON 报告供 LLM 或下游工具消费。
 
 数据源：Binance 公共 API（无需 API Key）
@@ -33,7 +39,19 @@ func rootCmd() *cobra.Command {
 	}
 	root.AddCommand(analyzeCmd())
 	root.AddCommand(multiCmd())
+	root.AddCommand(versionCmd())
 	return root
+}
+
+// versionCmd 输出当前版本号
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "输出当前版本号",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("signalbot %s\n", Version)
+		},
+	}
 }
 
 // analyzeCmd 分析单个标的单个时间周期

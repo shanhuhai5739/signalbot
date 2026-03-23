@@ -14,7 +14,19 @@ BTC、黄金等标的的量化行情分析 CLI 工具。
 # 需要 Go 1.21+
 git clone <repo>
 cd signalbot
+
+# 普通构建
 go build -o signalbot .
+
+# 注入版本号（推荐）
+go build -ldflags "-X main.Version=v1.1.0" -o signalbot .
+```
+
+查看版本：
+
+```bash
+signalbot --version
+signalbot version
 ```
 
 ---
