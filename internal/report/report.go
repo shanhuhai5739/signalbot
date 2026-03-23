@@ -120,3 +120,44 @@ func (r *Report) Save(path string) error {
 	defer f.Close()
 	return r.WriteJSON(f)
 }
+
+// ---------------------------------------------------------------------------
+// Multi-timeframe report
+// ---------------------------------------------------------------------------
+
+// MultiReport holds analysis results across multiple timeframes for one asset.
+type MultiReport struct {
+	Asset      string               `json:"asset"`
+	Timestamp  time.Time            `json:"timestamp"`
+	Timeframes map[string]*Report   `json:"timeframes"` // key: interval string
+	Summary    MultiSummary         `json:"summary"`
+}
+
+// MultiSummary is the cross-timeframe aggregated signal.
+type MultiSummary struct {
+	Alignment      string            `json:"alignment"`       // all_bullish | mostly_bullish | mixed | mostly_bearish | all_bearish
+	BullishCount   int               `json:"bullish_count"`
+	BearishCount   int               `json:"bearish_count"`
+	NeutralCount   int               `json:"neutral_count"`
+	DominantSignal string            `json:"dominant_signal"` // BUY | SELL | HOLD
+	Confidence     int               `json:"confidence"`      // 0–100
+	Signals        map[string]string `json:"signals"`         // interval → BUY/SELL/HOLD
+	Trends         map[string]string `json:"trends"`          // interval → bullish/neutral/bearish
+}
+
+// WriteJSON encodes the multi report as indented JSON.
+func (m *MultiReport) WriteJSON(w io.Writer) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(m)
+}
+
+// Save writes the multi report to the specified file path.
+func (m *MultiReport) Save(path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return m.WriteJSON(f)
+}
